@@ -13,14 +13,14 @@ export default class Req1Controller {
 
             if (!users) {
                 res.status(404).json({ error: "not found"});
+                return;
             }
 
             const jsonResponse = {
-                code: 200,
                 message: "Success",
                 allUsers: users
             }
-            res.send(jsonResponse);
+            res.status(200).send(jsonResponse);
         }
         catch (e) {
             console.log(`API get all users: ${e}`);
@@ -45,6 +45,7 @@ export default class Req1Controller {
                     message: "The email is not registered",
                     user: undefined,
                 });
+                return;
             }
 
             // get the user
@@ -59,6 +60,7 @@ export default class Req1Controller {
                     message: "The password is not correct",
                     user: undefined,
                 });
+                return;
             }
 
             // valid password and email combination
