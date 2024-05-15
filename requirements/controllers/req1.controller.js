@@ -24,10 +24,11 @@ export default class Req1Controller {
         }
         catch (e) {
             console.log(`API get all users: ${e}`);
-            res.status(500).json({ error: e });
+            res.status(500).json({ message: `${e}` });
         }   
     }
 
+    
     static async apiGetSpecificUser(req, res, next) {
         // get specific user by using just their email and password
         // this will later be used for user login process
@@ -36,16 +37,43 @@ export default class Req1Controller {
             const userPassword = req.body.password;
 
             let specificUser = await Req1Queries.getSpecificUser(userEmail, userPassword);
-
+            
             // console.log(specificUser);
-            if (specificUser.code !== 200) {
-                res.status(specificUser.code).json({ error: `${specificUser.message}`});
+            // see if the user email is registered
+            if (specificUser.length === 0) {
+                res.send({
+                    code: 404,
+                    message: "The email is not registered",
+                    user: undefined,
+                });
             }
-            res.send(specificUser);
+
+            // get the user
+            // see if the password is correct or not
+            const user = specificUser[0];
+            // console.log(user);
+            const validPassword = await bcrypt.compare(userPassword, user.password);
+            
+            // not valid password, return proper code and message 
+            if (!validPassword) {
+                res.send({
+                    code: 401,
+                    message: "The password is not correct",
+                    user: undefined,
+                });
+            }
+
+            // valid password and email combination
+            // code 200, request valid
+            res.send({
+                code: 200,
+                message: "Success",
+                user: user
+            });
         }
         catch (e) {
-            console.log(`API get all users: ${e}`);
-            res.status(500).json({ error: e });
+            console.log(`API get specific users: ${e}`);
+            res.status(500).json({ message: `${e}` });
         }   
     }
 
@@ -58,21 +86,16 @@ export default class Req1Controller {
             const userEmail = req.body.email;
             const userPassword = await bcrypt.hash(req.body.password, 10);
 
-            const checkoutResponse = await Req1Queries.postUser(
+            await Req1Queries.postUser(
                 userName,
                 userEmail,
                 userPassword
             );
-
-            if (checkoutResponse.code !== 200) {
-                res.status(checkoutResponse.code).json( {error: `${checkoutResponse.message}`} );
-            }
-            else {
-                res.json({ status: "success" });
-            }
+            
+            res.status(200).json({status: "Success"});
         } catch (e) {
             console.log(`API register user: ${e}`);
-            res.status(500).json({ error: e });
+            res.status(412).json({message: `${e}`});
         }
     }
 }
