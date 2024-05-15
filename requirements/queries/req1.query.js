@@ -27,24 +27,4 @@ export default class Req1Queries {
         ]);
         return queryResult;
     }
-
-    // helper to check if user name is valid
-    // user name is not in users table is true
-    // otherwise, false
-    static async checkUserName(userName) {
-        let queryResult;
-        queryResult = await client.query("SELECT * FROM users WHERE name = $1", [userName]);
-        const userNameValid = (queryResult.rowCount !== 0);
-        return userNameValid;
-    }
-
-    // helper to check if user email is valid
-    // user email is not in users table is true
-    // otherwise, false
-    static async checkUserEmail(userEmail) {
-        let queryResult;
-        queryResult = await client.query("SELECT * FROM users WHERE email = $1", [userEmail]);
-        const userEmailValid = (queryResult.rowCount !== 0);
-        return userEmailValid;
-    }
 }
