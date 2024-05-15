@@ -28,7 +28,7 @@ export default class Req1Controller {
         }   
     }
 
-    
+
     static async apiGetSpecificUser(req, res, next) {
         // get specific user by using just their email and password
         // this will later be used for user login process
@@ -41,8 +41,7 @@ export default class Req1Controller {
             // console.log(specificUser);
             // see if the user email is registered
             if (specificUser.length === 0) {
-                res.send({
-                    code: 404,
+                res.status(404).send({
                     message: "The email is not registered",
                     user: undefined,
                 });
@@ -56,8 +55,7 @@ export default class Req1Controller {
             
             // not valid password, return proper code and message 
             if (!validPassword) {
-                res.send({
-                    code: 401,
+                res.status(401).send({
                     message: "The password is not correct",
                     user: undefined,
                 });
@@ -65,8 +63,7 @@ export default class Req1Controller {
 
             // valid password and email combination
             // code 200, request valid
-            res.send({
-                code: 200,
+            res.status(200).send({
                 message: "Success",
                 user: user
             });
