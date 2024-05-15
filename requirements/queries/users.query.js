@@ -1,6 +1,6 @@
 import client from "../../db.js";
 
-export default class Req1Queries {
+export default class UsersQueries {
     static async getAllUsers() {
         let queryResult;
         queryResult = await client.query("SELECT * FROM users");

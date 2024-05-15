@@ -1,7 +1,13 @@
-import Req1Queries from "../queries/req1.query.js";
+import UsersQueries from "../queries/users.query.js";
 import bcrypt from 'bcrypt';
+import jwt from 'jsonwebtoken';
+import dotenv from 'dotenv';
 
-export default class Req1Controller {
+dotenv.config();
+const secretKey = process.env.SECRET_KEY_JWT_TOKEN;
+
+export default class UsersController {
+    
     static async apiRootRouter(req, res, next) {
         console.log("Hello from get all users route");
         return res.send("Hello from default router for truemates/");
@@ -9,7 +15,7 @@ export default class Req1Controller {
 
     static async apiGetAllUsers(req, res, next) {
         try {
-            let users = await Req1Queries.getAllUsers();
+            let users = await UsersQueries.getAllUsers();
 
             if (!users) {
                 res.status(404).json({ error: "not found"});
@@ -28,7 +34,34 @@ export default class Req1Controller {
         }   
     }
 
+    static async apiRegisterUser(req, res, next) {
+        // to register, required to have
+        // name, email, password
+        try {
+            // console.log(req.body);
+            const userName = req.body.name;
+            const userEmail = req.body.email;
+            const userPassword = await bcrypt.hash(req.body.password, 10);
 
+            const regUserResponse = await UsersQueries.postUser(
+                userName,
+                userEmail,
+                userPassword
+            );
+
+            if (regUserResponse.rowCount !== 1) {
+                res.status(500).json({error: "Query failed"});
+                return;
+            }
+            
+            res.status(200).json({status: "Success"});
+        } catch (e) {
+            console.log(`API register user: ${e}`);
+            res.status(412).json({message: `${e}`});
+        }
+    }
+
+    // LOGIN
     static async apiGetSpecificUser(req, res, next) {
         // get specific user by using just their email and password
         // this will later be used for user login process
@@ -36,14 +69,14 @@ export default class Req1Controller {
             const userEmail = req.body.email;
             const userPassword = req.body.password;
 
-            let specificUser = await Req1Queries.getSpecificUser(userEmail, userPassword);
+            let specificUser = await UsersQueries.getSpecificUser(userEmail, userPassword);
             
             // console.log(specificUser);
             // see if the user email is registered
             if (specificUser.length === 0) {
                 res.status(404).send({
                     message: "The email is not registered",
-                    user: undefined,
+                    userToken: undefined,
                 });
                 return;
             }
@@ -58,43 +91,29 @@ export default class Req1Controller {
             if (!validPassword) {
                 res.status(401).send({
                     message: "The password is not correct",
-                    user: undefined,
+                    userToken: undefined,
                 });
                 return;
             }
 
             // valid password and email combination
+            // generate the JWT token
+            const token = jwt.sign({
+                userId: user.id,
+                email: user.email
+            }, 
+            secretKey, 
+            {expiresIn: '24h'});
+
             // code 200, request valid
             res.status(200).send({
                 message: "Success",
-                user: user
+                userToken: token
             });
         }
         catch (e) {
             console.log(`API get specific users: ${e}`);
             res.status(500).json({ message: `${e}` });
         }   
-    }
-
-    static async apiRegisterUser(req, res, next) {
-        // to register, required to have
-        // name, email, password
-        try {
-            // console.log(req.body);
-            const userName = req.body.name;
-            const userEmail = req.body.email;
-            const userPassword = await bcrypt.hash(req.body.password, 10);
-
-            await Req1Queries.postUser(
-                userName,
-                userEmail,
-                userPassword
-            );
-            
-            res.status(200).json({status: "Success"});
-        } catch (e) {
-            console.log(`API register user: ${e}`);
-            res.status(412).json({message: `${e}`});
-        }
     }
 }

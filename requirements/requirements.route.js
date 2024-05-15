@@ -1,11 +1,21 @@
 import { Router } from 'express';
-import Req1Controller from './controllers/req1.controller.js';
+import UsersController from './controllers/users.controller.js';
+import AuthController from './controllers/auth.controller.js';
+import PostsController from './controllers/posts.controller.js';
 
 const router = Router();
 
-router.route("/").get(Req1Controller.apiRootRouter);
-router.route("/users/get/all").get(Req1Controller.apiGetAllUsers);
-router.route("/users/get/specific").get(Req1Controller.apiGetSpecificUser);
-router.route("/users/register").post(Req1Controller.apiRegisterUser);
+router.route("/").get(UsersController.apiRootRouter);
+router.route("/users/get/all").get(UsersController.apiGetAllUsers);
+
+// user-related: login and register
+router.route("/users/login").get(UsersController.apiGetSpecificUser);
+router.route("/users/register").post(UsersController.apiRegisterUser);
+
+// post related
+// router.route("/protected").get(AuthController.verifyToken, PostsController.apiDoSmthProtected);
+router.route("/posts/create/user").post(AuthController.verifyToken, PostsController.apiCreatePost);
+router.route("/posts/get/post/:postId").post(AuthController.verifyToken, PostsController.apiGetPost);
+router.route("/posts/update/post/:postId").post(AuthController.verifyToken, PostsController.apiUpdatePostDescription);
 
 export default router;
