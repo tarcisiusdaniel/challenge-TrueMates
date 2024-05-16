@@ -13,6 +13,7 @@ CREATE TABLE posts (
     post_timestamp timestamp, 
     user_id int NOT NULL, 
     ID SERIAL NOT NULL, 
+    post_photos text[],
     
     PRIMARY KEY (ID), 
     

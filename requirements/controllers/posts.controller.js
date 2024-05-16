@@ -2,11 +2,22 @@ import PostsQueries from '../queries/posts.query.js';
 import bcrypt from 'bcrypt';
 import jwt from 'jsonwebtoken';
 import dotenv from 'dotenv';
+import admin from 'firebase-admin';
+import serviceAccount from '../../config/truemates-challenge-db-firebase-adminsdk.js';
 
 dotenv.config();
 const secretKey = process.env.SECRET_KEY_JWT_TOKEN;
 
-// Logged in users can create a post. Post has 2 attributes: description and a photo. Save photos to GCP database/ bucket.
+// Initialize Firebase Admin SDKjhsa
+admin.initializeApp({
+    credential: admin.credential.cert(serviceAccount),
+    storageBucket: 'gs://truemates-challenge-db.appspot.com'
+});
+
+// Initialize Firebase storage
+const bucket = admin.storage().bucket(); // get the warning from over here
+
+// Logged in users can create a post. Post has 2 attributes: description and a photo. Save photos to GCP database/ bucket. (DONE)
 // 1. A post will have an attribute when it was created. (DONE)
 // 2. Post returning api will calculate the time difference like 2s ago, 10d ago, 4w ago, 8m ago and 1yr ago.
 // 3. A post can have multiple photos but at most 5.
@@ -20,14 +31,18 @@ export default class PostsController {
 
     static async apiCreatePost(req, res, next) {
         try {
-            console.log(req.headers.authorization);
+            // console.log(req.headers.authorization);
+            // console.log(req.body);
+            // console.log(req.files);
+            // console.log(req.body.postDescription);
+
             const token = req.headers.authorization;
 
             const decodedToken = jwt.decode(token);
 
             // all things we need to pass to the sql query
             const postDescription = req.body.postDescription;
-            console.log(postDescription);
+            // console.log(postDescription);
             const currDate = new Date();
 
             // get individual components of the date and time
@@ -41,19 +56,36 @@ export default class PostsController {
             // convert the date gotten to be match of date data type format in sql query
             const postTimestamp = `${year}-${month}-${day} ${hours}:${minutes}:${seconds}`;
             
-            const postPhotos = req.body.postPhotos; // make sure the photos can only be 5 element
-            //////////////////////
+            const postPhotos = req.files; // make sure the photos can only be 5 element
+            // console.log(postPhotos);
+            if (!postPhotos || postPhotos.length > 5 ) {
+                res.status(500).json({error: "Photos invalid (more than 5 or cannot be retrieved)"});
+                return;
+            }
             
+            // make the promise object to upload the photos to the firebase storage
+            const uploadPromises = postPhotos.map(async (file) => {
+                // console.log(file);
+                const filename = Date.now() + '-' + file.originalname;
+                const fileUpload = bucket.file(filename);
+                await fileUpload.save(file.buffer, {
+                    metadata: {
+                        contentType: file.mimetype,
+                    },
+                });
+                const downloadUrl = `https://storage.googleapis.com/${bucket.name}/${fileUpload.name}`;
+                return downloadUrl;
+            })
             
-            // make sure to address the database for photos
+            const postPhotosUrls = await Promise.all(uploadPromises);
+            // console.log(postPhotosUrls);
 
-
-            //////////////////////
             const fkUserId = decodedToken.userId;
 
             const createPostResponse = await PostsQueries.postPost(
                 postDescription,
                 postTimestamp,
+                postPhotosUrls,
                 fkUserId
             );
 
@@ -67,12 +99,38 @@ export default class PostsController {
         }
         catch (e) {
             console.log(`API for user create a post: ${e}`);
-            res.status(412).json({message: `${e}`});
+            res.status(500).json({message: `${e}`});
         }
     }
 
     static async apiGetPost(req, res, next) {
         // calculate the time difference with the queried time stamp
+        try {
+            const postId = req.params.postId;
+            console.log(req.params.postId);
+            
+            const getPostResponse = await PostsQueries.getPost(postId);
+
+            if (getPostResponse.rowCount !== 1) {
+                res.status(500).send({
+                    message: "Query failed - invalid post id",
+                    post: undefined
+                });
+                return;
+            }
+
+            console.log(getPostResponse.rows[0].post_timestamp);
+            const timeDiff = Date.now();
+
+            res.status(200).send({
+                message: "Success",
+                post: getPostResponse.rows[0],
+                timeDiff: timeDiff
+            });
+        } catch (e) {
+            console.log(`API for user getting a post: ${e}`);
+            res.status(500).json({message: `${e}`});
+        }
     }
 
     static async apiUpdatePostDescription(req, res, next) {
