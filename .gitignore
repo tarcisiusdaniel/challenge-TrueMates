@@ -1,5 +1,3 @@
 node_modules/
 
 .env
-
-/config/truemates-challenge-db-firebase-adminsdk.js
