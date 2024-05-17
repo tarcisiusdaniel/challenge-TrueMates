@@ -21,4 +21,15 @@ export default class PostsQueries {
         ]);
         return queryResult;
     }
+
+    static async updatePostDescription(postId, updatedPostDescription) {
+        let queryResult;
+        queryResult = await client.query('UPDATE posts \
+            SET post_description = $1 \
+            WHERE ID = $2', [
+                updatedPostDescription,
+                postId
+            ]);
+        return queryResult;
+    }
 }

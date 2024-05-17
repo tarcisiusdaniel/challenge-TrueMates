@@ -6,6 +6,10 @@ import dotenv from 'dotenv';
 dotenv.config();
 const secretKey = process.env.SECRET_KEY_JWT_TOKEN;
 
+// 2. User can add friends.
+// 3. Friends List endpoint returns friends' info and number of mutual friends.
+
+
 export default class UsersController {
     
     static async apiRootRouter(req, res, next) {

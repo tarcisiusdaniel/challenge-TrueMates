@@ -19,9 +19,11 @@ const bucket = admin.storage().bucket(); // get the warning from over here
 
 // Logged in users can create a post. Post has 2 attributes: description and a photo. Save photos to GCP database/ bucket. (DONE)
 // 1. A post will have an attribute when it was created. (DONE)
-// 2. Post returning api will calculate the time difference like 2s ago, 10d ago, 4w ago, 8m ago and 1yr ago.
-// 3. A post can have multiple photos but at most 5.
-// 4. A post’s description can be edited.
+// 2. Post returning api will calculate the time difference like 2s ago, 10d ago, 4w ago, 8m ago and 1yr ago. (DONE)
+// 3. A post can have multiple photos but at most 5. (DONE)
+// 4. A post’s description can be edited. (DONE)
+
+// 1. Need to add pagination in the post.
 
 
 export default class PostsController {
@@ -118,14 +120,38 @@ export default class PostsController {
                 });
                 return;
             }
+            
+            // convert time difference to seconds
+            const timeDiff = (Date.now() - new Date(getPostResponse.rows[0].post_timestamp)) / 1000; 
+            
+            let timeDiffInStr = ''; 
+            if (timeDiff >= 31556926) { // convert to year
+                timeDiffInStr = Math.round(timeDiff / 31556926) + 'yr ago';
+            }
+            else if (timeDiff >= 2629744) { // convert to month
+                timeDiffInStr = Math.round(timeDiff / 2629744) + 'mo ago';
+            }
+            else if (timeDiff >= 604800) { // convert to week
+                timeDiffInStr = Math.round(timeDiff / 604800) + 'w ago';
+            }
+            else if (timeDiff >= 86400) { // convert to days
+                timeDiffInStr = Math.round(timeDiff / 86400) + 'd ago';
+            }
+            else if (timeDiff >= 3600) { // convert to hour
+                timeDiffInStr = Math.round(timeDiff / 3600) + 'h ago';
+            }
+            else if (timeDiff >= 60) { // convert to minute
+                timeDiffInStr = Math.round(timeDiff / 60) + 'm ago';
+            }
+            else {
+                timeDiffInStr = timeDiff + 's ago';
+            }
 
-            console.log(getPostResponse.rows[0].post_timestamp);
-            const timeDiff = Date.now();
 
             res.status(200).send({
                 message: "Success",
                 post: getPostResponse.rows[0],
-                timeDiff: timeDiff
+                timeDiff: timeDiffInStr
             });
         } catch (e) {
             console.log(`API for user getting a post: ${e}`);
@@ -135,5 +161,31 @@ export default class PostsController {
 
     static async apiUpdatePostDescription(req, res, next) {
         // update the description of a post
+        try {
+            console.log(req.body);
+            console.log(req.params.postId);
+
+            const updatedPostDescription = req.body.newPostDescription;
+            const postId = req.params.postId;
+
+            const updatePostDescriptionResponse = await PostsQueries.updatePostDescription(
+                postId,
+                updatedPostDescription
+            );
+
+            console.log(updatePostDescriptionResponse);
+
+            if (updatePostDescriptionResponse.rowCount !== 1) {
+                res.status(500).json({error: "update failed! post id not exist"});
+                return;
+            }
+
+            res.status(200).send({
+                message: "Success"
+            });
+        } catch (e) {
+            console.log(`API for updating a post description: ${e}`);
+            res.status(500).json({message: `${e}`});
+        }
     }
 }
