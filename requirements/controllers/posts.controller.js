@@ -23,7 +23,7 @@ const bucket = admin.storage().bucket(); // get the warning from over here
 // 3. A post can have multiple photos but at most 5. (DONE)
 // 4. A post’s description can be edited. (DONE)
 
-// 1. Need to add pagination in the post.
+// 1. Need to add pagination in the post. (DONE) paginatio
 
 
 export default class PostsController {
@@ -105,6 +105,36 @@ export default class PostsController {
         }
     }
 
+    static calculateTimeDiff(timestamp) {
+        // convert time difference to seconds
+        const timeDiff = (Date.now() - new Date(timestamp)) / 1000; 
+            
+        let timeDiffInStr = ''; 
+        if (timeDiff >= 31556926) { // convert to year
+            timeDiffInStr = Math.round(timeDiff / 31556926) + 'yr ago';
+        }
+        else if (timeDiff >= 2629744) { // convert to month
+            timeDiffInStr = Math.round(timeDiff / 2629744) + 'mo ago';
+        }
+        else if (timeDiff >= 604800) { // convert to week
+            timeDiffInStr = Math.round(timeDiff / 604800) + 'w ago';
+        }
+        else if (timeDiff >= 86400) { // convert to days
+            timeDiffInStr = Math.round(timeDiff / 86400) + 'd ago';
+        }
+        else if (timeDiff >= 3600) { // convert to hour
+            timeDiffInStr = Math.round(timeDiff / 3600) + 'h ago';
+        }
+        else if (timeDiff >= 60) { // convert to minute
+            timeDiffInStr = Math.round(timeDiff / 60) + 'm ago';
+        }
+        else {
+            timeDiffInStr = timeDiff + 's ago';
+        }
+
+        return timeDiffInStr;
+    }
+
     static async apiGetPost(req, res, next) {
         // calculate the time difference with the queried time stamp
         try {
@@ -120,33 +150,34 @@ export default class PostsController {
                 });
                 return;
             }
-            
-            // convert time difference to seconds
-            const timeDiff = (Date.now() - new Date(getPostResponse.rows[0].post_timestamp)) / 1000; 
-            
-            let timeDiffInStr = ''; 
-            if (timeDiff >= 31556926) { // convert to year
-                timeDiffInStr = Math.round(timeDiff / 31556926) + 'yr ago';
-            }
-            else if (timeDiff >= 2629744) { // convert to month
-                timeDiffInStr = Math.round(timeDiff / 2629744) + 'mo ago';
-            }
-            else if (timeDiff >= 604800) { // convert to week
-                timeDiffInStr = Math.round(timeDiff / 604800) + 'w ago';
-            }
-            else if (timeDiff >= 86400) { // convert to days
-                timeDiffInStr = Math.round(timeDiff / 86400) + 'd ago';
-            }
-            else if (timeDiff >= 3600) { // convert to hour
-                timeDiffInStr = Math.round(timeDiff / 3600) + 'h ago';
-            }
-            else if (timeDiff >= 60) { // convert to minute
-                timeDiffInStr = Math.round(timeDiff / 60) + 'm ago';
-            }
-            else {
-                timeDiffInStr = timeDiff + 's ago';
-            }
 
+            let timeDiffInStr = this.calculateTimeDiff(getPostResponse.rows[0].post_timestamp); 
+            
+            // // convert time difference to seconds
+            // const timeDiff = (Date.now() - new Date(getPostResponse.rows[0].post_timestamp)) / 1000; 
+            
+            // let timeDiffInStr = ''; 
+            // if (timeDiff >= 31556926) { // convert to year
+            //     timeDiffInStr = Math.round(timeDiff / 31556926) + 'yr ago';
+            // }
+            // else if (timeDiff >= 2629744) { // convert to month
+            //     timeDiffInStr = Math.round(timeDiff / 2629744) + 'mo ago';
+            // }
+            // else if (timeDiff >= 604800) { // convert to week
+            //     timeDiffInStr = Math.round(timeDiff / 604800) + 'w ago';
+            // }
+            // else if (timeDiff >= 86400) { // convert to days
+            //     timeDiffInStr = Math.round(timeDiff / 86400) + 'd ago';
+            // }
+            // else if (timeDiff >= 3600) { // convert to hour
+            //     timeDiffInStr = Math.round(timeDiff / 3600) + 'h ago';
+            // }
+            // else if (timeDiff >= 60) { // convert to minute
+            //     timeDiffInStr = Math.round(timeDiff / 60) + 'm ago';
+            // }
+            // else {
+            //     timeDiffInStr = timeDiff + 's ago';
+            // }
 
             res.status(200).send({
                 message: "Success",
@@ -185,6 +216,44 @@ export default class PostsController {
             });
         } catch (e) {
             console.log(`API for updating a post description: ${e}`);
+            res.status(500).json({message: `${e}`});
+        }
+    }
+
+    static async apiGetPostsWithPagination(req, res, next) {
+        try {
+            // console.log(req.query);
+            const page = req.query.page;
+            const size = req.query.size;
+            if (page <= 0 || size <= 0) {
+                res.status(500).json({error: "page or size is invalid. Cannot be 0 or less"});
+                return;
+            }
+            const offset = (page - 1) * size;
+
+            const getPostsWithPaginationResponse = await PostsQueries.getPostsWithPagination(
+                size,
+                offset
+            );
+
+            let postsFinalResult = getPostsWithPaginationResponse.rows.map( (post) => {
+                // console.log(post.post_timestamp);
+                // console.log(PostsController.calculateTimeDiff(post.post_timestamp));
+                let currPost = {
+                    post: post,
+                    timeDiff: PostsController.calculateTimeDiff(post.post_timestamp)
+                }
+                
+                return currPost;
+            });
+            
+
+            res.status(200).send({
+                message: "Success",
+                queriedPosts: postsFinalResult
+            })
+        } catch (e) {
+            console.log(`API for getting posts with pagination: ${e}`);
             res.status(500).json({message: `${e}`});
         }
     }

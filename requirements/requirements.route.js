@@ -22,7 +22,8 @@ router.route("/users/register").post(UsersController.apiRegisterUser);
 // post related
 // router.route("/protected").get(AuthController.verifyToken, PostsController.apiDoSmthProtected);
 router.route("/posts/user/create").post(AuthController.verifyToken, upload.array('photos', 10), PostsController.apiCreatePost);
-router.route("/posts/get/post/:postId").get(AuthController.verifyToken, PostsController.apiGetPost);
-router.route("/posts/update/post/description/:postId").put(AuthController.verifyToken, PostsController.apiUpdatePostDescription);
+router.route("/posts/get/single/:postId").get(AuthController.verifyToken, PostsController.apiGetPost);
+router.route("/posts/get/multiple").get(AuthController.verifyToken, PostsController.apiGetPostsWithPagination);
+router.route("/posts/update/description/:postId").put(AuthController.verifyToken, PostsController.apiUpdatePostDescription);
 
 export default router;

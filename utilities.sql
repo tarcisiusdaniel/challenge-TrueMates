@@ -1,3 +1,4 @@
+-- users table
 CREATE TABLE users (
     ID int NOT NULL AUTO_INCREMENT, 
     name varchar(255) UNIQUE, 
@@ -7,7 +8,7 @@ CREATE TABLE users (
     PRIMARY KEY (ID)
 );
 
--- make sure to figure out how to store photos
+-- posts table
 CREATE TABLE posts (
     post_description text,
     post_timestamp timestamp, 
@@ -21,5 +22,3 @@ CREATE TABLE posts (
     FOREIGN KEY (user_id)
     REFERENCES users(ID)
 );
-
-

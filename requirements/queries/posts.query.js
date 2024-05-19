@@ -32,4 +32,18 @@ export default class PostsQueries {
             ]);
         return queryResult;
     }
+
+    // based the pagination comparison by ID
+    // since I made the ID to be INCREMENTIAL during each creation for each tuple in posts
+    static async getPostsWithPagination(size, offset) {
+        let queryResult;
+        queryResult = await client.query('SELECT * \
+            FROM posts \
+            ORDER BY ID \
+            LIMIT $1 OFFSET $2', [
+                size,
+                offset
+            ]);
+        return queryResult;
+    }
 }
